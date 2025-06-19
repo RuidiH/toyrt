@@ -179,12 +179,6 @@ void WritePPM(const char *filename,
 
 int main()
 {
-    int* test = new int[3]{1, 2, 3};
-    std::cout << "test " << test << std::endl;
-    std::cout << "test[0] " << test[0] << std::endl;
-    std::cout << "test[1] " << test[1] << std::endl;
-    delete[] test;
-
     // image properties
     const int WIDTH = 400;
     const int HEIGHT = 400;
