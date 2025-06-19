@@ -7,6 +7,8 @@
 #include <cmath>
 #include <cstdint>
 
+#include "core/vecmath.hpp"
+
 struct Vec3
 {
     float x, y, z;
@@ -175,8 +177,13 @@ void WritePPM(const char *filename,
     std::cout << "successfully write to file.\n";
 }
 
-int main(int argc, char *argv[])
+int main()
 {
+    int* test = new int[3]{1, 2, 3};
+    std::cout << "test " << test << std::endl;
+    std::cout << "test[0] " << test[0] << std::endl;
+    std::cout << "test[1] " << test[1] << std::endl;
+    delete[] test;
 
     // image properties
     const int WIDTH = 400;
@@ -200,7 +207,7 @@ int main(int argc, char *argv[])
     int focal_length = 3;
 
     // sphere
-    Sphere s(Vec3(0, 0, 0), 7); // unit sphere at origin
+    Sphere s(Vec3(0, 0, 0), 3); // unit sphere at origin
 
     WritePPM("../output.ppm", 
             image, 

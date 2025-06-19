@@ -1,0 +1,3 @@
+C:/Reed/Projects/touch_fish_rt/build/CMakeFiles/tfrt.dir
+C:/Reed/Projects/touch_fish_rt/build/CMakeFiles/edit_cache.dir
+C:/Reed/Projects/touch_fish_rt/build/CMakeFiles/rebuild_cache.dir
