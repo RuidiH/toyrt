@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "vecmath.hpp"
 
 namespace tfrt
@@ -9,16 +11,20 @@ namespace tfrt
     public:
         Point3f o;
         Vector3f d;
-        float tMin, tMax;
-        float time = 0;
+        Float tMin, tMax;
+        Float time = 0;
 
+    public:
+        bool HasNaN() const { return (o.HasNaN() || d.HasNaN()); }
         Ray() = default;
-        Ray(const Point3f& o, const Vector3f& d, float time = 0)
+        Ray(Point3f o, Vector3f d, float time = 0)
             : o(o), d(d), time(time) {}
 
         Point3f operator()(float t) const { return o + d * t; }
 
-        // std::string ToString() const {}
+        std::string ToString() const {
+            return "";
+        }
     };
 
     class RayDifferential : public Ray

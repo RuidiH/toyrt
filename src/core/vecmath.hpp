@@ -2,6 +2,9 @@
 #include <cmath>
 #include <string>
 
+#include "util/math.hpp"
+#include "tfrt.hpp"
+
 #ifndef DCHECK
 #ifdef NDEBUG
 #define DCHECK(x) ((void)0)
@@ -17,10 +20,23 @@
 
 namespace tfrt
 {
-
-    using Float = float;
-
     inline bool IsNaN(float v) { return std::isnan(v); }
+
+    // TupleLength
+    template <typename T>
+    struct TupleLength {
+        using type = Float;
+    };
+
+    template <>
+    struct TupleLength<double> {
+        using type = double;
+    };
+
+    template <>
+    struct TupleLength<long double> {
+        using type = long double;
+    };
 
     template <template <class> class Child, typename T>
     class Tuple2
@@ -175,8 +191,17 @@ namespace tfrt
         return {max(t0.x, t1.x), max(t0.y, t1.y)};
     }
 
-    // TODO: Implement later
-    // FMA() {}
+    template <template <class> class C, typename T>
+    inline C<T> FMA(Float a, Tuple2<C, T> b, Tuple2<C, T> c) {
+        return {FMA(a, b.x, c.x), FMA(a, b.y, c.y)};
+    }
+
+    template <template <class> class C, typename T>
+    inline C<T> FMA(Tuple2<C, T> a, Float b, Tuple2<C, T> c) {
+        return FMA(b, a, c);
+    }
+
+    // TODO: Implement later 
     // minComponentValue() {}
     // minComponentIndex() {}
     // Permute() {}
@@ -339,6 +364,16 @@ namespace tfrt
         return {min(t0.x, t1.x), min(t0.y, t1.y), min(t0.z, t1.z)};
     }
 
+    template <template <class> class C, typename T>
+    inline C<T> FMA(Float a, Tuple3<C, T> b, Tuple3<C, T> c) {
+        return {FMA(a, b.x, c.x), FMA(a, b.y, c.y), FMA(a, b.z, c.z)};
+    }
+
+    template <template <class> class C, typename T>
+    inline C<T> FMA(Tuple3<C, T> a, Float b, Tuple3<C, T> c) {
+        return FMA(b, a, c);
+    }
+
     template <typename T>
     class Vector2 : public Tuple2<Vector2, T>
     {
@@ -349,9 +384,9 @@ namespace tfrt
         Vector2() = default;
         Vector2(T x, T y) : Tuple2<tfrt::Vector2, T>(x, y) {}
         template <typename U>
-        explicit Vector2(Point2<U> p) : Tuple2<tfrt::Vector2, T>(T(p.x), T(p.y)) {}
+        explicit Vector2(Point2<U> p);
         template <typename U>
-        explicit Vector2(Vector2<U> v) : Tuple2<tfrt::Vector2, T>(T(v.x), T(v.u)) {}
+        explicit Vector2(Vector2<U> v) : Tuple2<tfrt::Vector2, T>(T(v.x), T(v.y)) {}
     };
 
     template <typename T>
@@ -369,7 +404,7 @@ namespace tfrt
         explicit Vector3(Vector3<U> v) : Tuple3<tfrt::Vector3, T>(T(v.x), T(v.y), T(v.z)) {}
 
         template <typename U>
-        explicit Vector3(Point3<U> p) : Tuple3<tfrt::Vector3, T>(T(p.x), T(p.y), T(p.z)) {}
+        explicit Vector3(Point3<U> p);
     };
 
     using Vector2f = Vector2<Float>;
@@ -420,7 +455,7 @@ namespace tfrt
         }
 
         template <typename U>
-        Point2<T> &operator-=(Vector2<U> v) 
+        Point2<T> &operator-=(Vector2<U> v)
         {
             x -= v.x;
             y -= v.y;
@@ -429,13 +464,13 @@ namespace tfrt
         template <typename U>
         auto operator-(Point2<U> p) const -> Vector2<decltype(T{} - U{})>
         {
-            return {x - p.x, y - p.y, z - p.z};
+            return {x - p.x, y - p.y};
         }
 
         // negate
         Point2<T> &operator-() const
         {
-            return {-x, -y, -z};
+            return {-x, -y};
         }
     };
 
@@ -487,7 +522,7 @@ namespace tfrt
         }
 
         template <typename U>
-        Point3<t> &operator-=(Vector3<U> v)
+        Point3<T> &operator-=(Vector3<U> v)
         {
             x -= v.x;
             y -= v.y;
@@ -506,4 +541,92 @@ namespace tfrt
     using Point2i = Point2<int>;
     using Point3f = Point3<Float>;
     using Point3i = Point3<int>;
+
+    // point3fi
+
+    template <typename T>
+    class Normal3 : public Tuple3<Normal3, T>
+    {
+    public:
+        using Tuple3<Normal3, T>::x;
+        using Tuple3<Normal3, T>::y;
+        using Tuple3<Normal3, T>::z;
+        using Tuple3<Normal3, T>::HasNaN;
+        using Tuple3<Normal3, T>::operator+;
+        using Tuple3<Normal3, T>::operator*;
+        using Tuple3<Normal3, T>::operator*=;
+
+    public:
+        Normal3() = default;
+        Normal3(T x, T y, T z) : Tuple3<tfrt::Normal3, T>(x, y, z) {}
+        
+        template <typename U>
+        explicit Normal3<T>(Normal3<U> v) : Tuple3<tfrt::Normal3, T>(T(v.x), T(v.y), T(v.z)) {}
+        template <typename U>
+        explicit Normal3<T>(Vector3<U> v) : Tuple3<tfrt::Normal3, T>(T(v.x), T(v.y), T(v.z)) {}
+    };
+
+    using Normal3f = Normal3<Float>;
+
+    // Quaternion
+
+    /*
+     *  ------------- Vector2 Inline Functions -------------
+     */
+    template <typename T>
+    template <typename U>
+    Vector2<T>::Vector2(Point2<U> p) : Tuple2<tfrt::Vector2, T>(T(p.x), T(p.y)) {}
+
+    template <typename T>
+    inline auto Dot(Vector2<T> v1, Vector2<T> v2) -> 
+        typename TupleLength<T>::type {
+        DCHECK(!v1.HasNaN() && !v2.HasNaN());
+        return FMA(v1.x, v2.x, v1.y * v2.y);
+    }
+
+    template <typename T>
+    inline auto AbsDot(Vector2<T> v1, Vector2<T> v2) ->
+        typename TupleLength<T>::type {
+        DCHECK(!v1.HasNaN() && !v2.HasNaN());
+        return std::abs(Dot(v1, v2));
+    }
+
+    template <typename T>
+    inline auto LengthSquared(Vector2<T> v) -> 
+        typename TupleLength<T>::type {
+        return Sqr(v.x) + Sqr(v.y);
+    }
+    
+    template <typename T>
+    inline auto Length(Vector2<T> v) ->
+        typename TupleLength<T>::type {
+        using std::sqrt;
+        return sqrt(LengthSquared(v));
+    }
+
+    template <typename T>
+    inline auto Normalize(Vector2<T> v) ->
+        typename TupleLength<T>::type {
+        return v / Length(v);
+    }
+
+    template <typename T>
+    inline auto Distance(Point2<T> v1, Point2<T> v2) ->
+        typename TupleLength<T>::type {
+        return Length(v1 - v2);
+    }
+
+    template <typename T>
+    inline auto DistanceSquared(Vector2<T> v1, Vector2<T> v2) ->
+        typename TupleLength<T>::type {
+        return LengthSquared(v1 - v2);
+    }
+
+    /*
+     *  ------------- Vector3 Inline Functions -------------
+     */
+
+    template <typename T>
+    template <typename U> 
+    Vector3<T>::Vector3(Point3<U> p) : Tuple3<tfrt::Vector3, T>(T(p.x), T(p.y), T(p.z)) {}
 }
